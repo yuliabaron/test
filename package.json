@@ -11,9 +11,9 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "ejs": "^2.5.5"
+    "ejs": "^2.0.0"
   },
   "devDependencies": {
-    "mem": "1.1.0"
+    "mem": "1.0.0"
   }
 }

@@ -1,0 +1,113 @@
+buildscript {
+    repositories {
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:4.0.1'
+        classpath("com.bettercloud:base-gradle-plugin:2.+")
+        classpath("com.bettercloud:deployment-plugin:2.+")
+    }
+}
+
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'maven'
+    id 'maven-publish'
+    id 'io.spring.dependency-management' version '1.0.6.RELEASE'
+    id 'com.commercehub.gradle.plugin.avro-base' version '0.8.0'
+}
+
+apply plugin: 'nebula.optional-base'
+apply plugin: 'com.bettercloud.deployment-plugin'
+apply plugin: 'com.bettercloud.gradle.base-gradle-plugin'
+
+apply from: 'gradle/bc-init.gradle'
+apply from: 'gradle/release.gradle'
+
+group = wfConditionLibGroupId
+version = wfConditionLibVersion
+
+sourceCompatibility = 8
+targetCompatibility = 8
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java','src/generated/java']
+        }
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "com.bettercloud:shared-bom:${maven_bom_version}"
+    }
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+repositories {
+    mavenLocal()
+}
+
+dependencies {
+    // Bettercloud Starters
+    compile 'com.bettercloud:bc-spring-boot-starter-config', optional
+    compile 'com.bettercloud:bc-spring-boot-starter-access-controls', optional
+
+    // Workflows
+    compile group: 'com.bettercloud', name: 'ae-models-lib', version: ae_models_lib_version, optional
+    compile group: 'com.bettercloud', name: 'model-adapter', version: model_adapter_version, optional
+    compile group: 'com.bettercloud', name: 'wf-dependent-lifecycle-lib', version: wf_dependent_lifecycle_version, optional
+
+    // 3rd Party
+    compile (group: 'io.confluent', name: 'kafka-avro-serializer', version: confluent_version) {
+        exclude group: 'javax.jms'
+        exclude group: 'com.sun.jdmk'
+        exclude group: 'com.sun.jmx'
+        optional
+    }
+    compile group: 'ma.glasnost.orika', name: 'orika-core', version: orika_version
+    compile group: 'org.projectlombok', name: 'lombok', version: lombok_version
+    compile group: 'org.apache.avro', name: 'avro', version: avro_version
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: spring_boot_version
+    compile group: 'org.springframework.kafka', name: 'spring-kafka', version: spring_kafka_version, optional
+
+    // Test
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junit_version
+    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit_version
+    testCompile group: 'org.mockito', name: 'mockito-core', version: mockito_version
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: spring_boot_version
+    testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: slf4j_test_version
+}
+
+task generateAvro(type: com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask) {
+    source("src/avro")
+    outputDir = file("src/generated/java")
+}
+
+compileJava.source(generateAvro.outputs)
+
+test {
+    useJUnitPlatform()
+    setTestClassesDirs(sourceSets.test.output.getClassesDirs())
+    classpath = sourceSets.test.runtimeClasspath
+    reports{
+        getJunitXml()
+    }
+}
+
+task jacocoFullTestReport(dependsOn: ['test'], type: JacocoReport) {
+    sourceSets sourceSets.main
+    executionData test
+}
+
+configurations {
+    unitTestCompile.extendsFrom testCompile
+    unitTestCompile.extendsFrom testRuntime
+    all*.exclude module : 'slf4j-log4j12'
+    all*.exclude module : 'logback-classic'
+}

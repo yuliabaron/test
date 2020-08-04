@@ -1,6 +1,6 @@
 {
   "name": "test",
-  "description": "A vulnerable test application",
+  "description": "A vulnerable test application test",
   "homepage": "https://snyk.io/",
   "repository": {
     "type": "git",

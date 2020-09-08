@@ -10,7 +10,7 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "ejs": "^2.0.0"
+    "ejs": "^1.0.0"
   },
   "devDependencies": {
     "mem": "1.0.0"
